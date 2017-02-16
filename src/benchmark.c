@@ -137,9 +137,11 @@ static void benchmark_dump(const double *respvar, int nthreads, const char *pref
 static void benchmark_cpu(const unsigned *tasks, unsigned ntasks, int nthreads, long load)
 {
 	long sum;
-	unsigned _tasks[ntasks];
+	unsigned *_tasks;
 	double loads[nthreads];
 	double times[nthreads];
+
+	_tasks = smalloc(ntasks*sizeof(unsigned));
 
 	memset(times, 0, nthreads*sizeof(double));
 	memset(loads, 0, nthreads*sizeof(unsigned));
@@ -178,6 +180,9 @@ static void benchmark_cpu(const unsigned *tasks, unsigned ntasks, int nthreads, 
 	
 	benchmark_dump(loads, nthreads, "cpu_load");
 	benchmark_dump(times, nthreads, "cpu_time");
+
+	/* House keeping. */
+	free(_tasks);
 }
 
 /**
@@ -191,11 +196,12 @@ static void benchmark_cpu(const unsigned *tasks, unsigned ntasks, int nthreads, 
 static void benchmark_cache(const unsigned *tasks, unsigned ntasks, int nthreads, long load)
 {
 	long *array;
-	unsigned _tasks[ntasks];
+	unsigned *_tasks;
 	double loads[nthreads];
 	double times[nthreads];
 
 	array = smalloc(ntasks*sizeof(long));
+	_tasks = smalloc(ntasks*sizeof(unsigned));
 
 	memset(times, 0, nthreads*sizeof(double));
 	memset(loads, 0, nthreads*sizeof(unsigned));
@@ -236,6 +242,7 @@ static void benchmark_cache(const unsigned *tasks, unsigned ntasks, int nthreads
 	benchmark_dump(times, nthreads, "cache_time");
 
 	/* House keeping. */
+	free(_tasks);
 	free(array);
 }
 
@@ -251,6 +258,7 @@ void benchmark(const unsigned *tasks, unsigned ntasks, int nthreads, long load)
 {
 	/* Sanity check. */
 	assert(tasks != NULL);
+	assert(ntasks > 0);
 	assert(nthreads > 0);
 	assert(load > 0);
 
