@@ -1,0 +1,6 @@
+*.swp
+*.lo
+*.o
+*.info
+*.la
+contrib/lapesd-libgomp
