@@ -4,3 +4,4 @@
 *.info
 *.la
 contrib/lapesd-libgomp
+*.out

@@ -3,7 +3,7 @@
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
-	* the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  * 
  * This program is distributed in the hope that it will be useful,
@@ -26,11 +26,10 @@
 #include <math.h>
 #include <limits.h>
 
-#include <profile.h>
 #include <util.h>
-
 #include <benchmark.h>
 
+/* Definied at LaPeSD LibGOMP. */
 extern void omp_set_workload(unsigned *, unsigned);
 
 /*============================================================================*
@@ -38,14 +37,14 @@ extern void omp_set_workload(unsigned *, unsigned);
  *============================================================================*/
 
 /**
- * @brief Kernelernel.
+ * @brief CPU intensive kernel.
  * 
  * @param n    Number of operations.
  * @param load Load of an operation.
  * 
  * @returns A dummy result.
  */
-static long kernel(unsigned n, long load)
+static long kernel_cpu(unsigned n, long load)
 {
 	long sum = 0;
  
@@ -56,6 +55,23 @@ static long kernel(unsigned n, long load)
 	}
 
 	return (sum);
+}
+
+/**
+ * @brief Cache intensive kernel.
+ *
+ * @param a    Shared array.
+ * @param off  Array offset.
+ * @param n    Number of operations.
+ * @param load Load of an operation.
+ */
+static void kernel_cache(long *a, unsigned off, unsigned n, long load)
+{
+	for (unsigned i = 0; i < n; i++)
+	{
+		for (unsigned j = 0; j < load; j++)
+			a[off]++;
+	}
 }
 
 /*============================================================================*
@@ -111,6 +127,119 @@ static void benchmark_dump(const double *respvar, int nthreads, const char *pref
 }
 
 /**
+ * @brief CPU intensive synthetic benchmark.
+ * 
+ * @param tasks    Tasks.
+ * @param ntasks   Number of tasks.
+ * @param nthreads Number of threads.
+ * @param load     Kernel load.
+ */
+static void benchmark_cpu(const unsigned *tasks, unsigned ntasks, int nthreads, long load)
+{
+	long sum;
+	unsigned _tasks[ntasks];
+	double loads[nthreads];
+	double times[nthreads];
+
+	memset(times, 0, nthreads*sizeof(double));
+	memset(loads, 0, nthreads*sizeof(unsigned));
+	
+	/* Workload prediction. */
+	memcpy(_tasks, tasks, ntasks*sizeof(unsigned));
+	omp_set_workload(_tasks, ntasks);
+
+	#pragma omp parallel num_threads(nthreads)
+	{
+		int tid;
+		double start;
+		double private_load, private_time;
+
+		sum = 0;
+		private_load = 0.0;
+		private_time = 0.0;
+
+		tid = omp_get_thread_num();
+		
+		#pragma omp for schedule(runtime) reduction(+:sum)
+		for (unsigned i = 0; i < ntasks; i++)
+		{
+			int work;
+
+			private_load += work = tasks[i];
+			
+			start = omp_get_wtime();
+			sum += kernel_cpu(work, load);
+			private_time += omp_get_wtime() - start;
+		}
+
+		loads[tid] = private_load;
+		times[tid] = private_time;
+	}
+	
+	benchmark_dump(loads, nthreads, "cpu_load");
+	benchmark_dump(times, nthreads, "cpu_time");
+}
+
+/**
+ * @brief Cache intensive synthetic benchmark.
+ * 
+ * @param tasks    Tasks.
+ * @param ntasks   Number of tasks.
+ * @param nthreads Number of threads.
+ * @param load     Kernel load.
+ */
+static void benchmark_cache(const unsigned *tasks, unsigned ntasks, int nthreads, long load)
+{
+	long *array;
+	unsigned _tasks[ntasks];
+	double loads[nthreads];
+	double times[nthreads];
+
+	array = smalloc(ntasks*sizeof(long));
+
+	memset(times, 0, nthreads*sizeof(double));
+	memset(loads, 0, nthreads*sizeof(unsigned));
+	memset(array, 0, ntasks*sizeof(long));
+	
+	/* Workload prediction. */
+	memcpy(_tasks, tasks, ntasks*sizeof(unsigned));
+	omp_set_workload(_tasks, ntasks);
+
+	#pragma omp parallel num_threads(nthreads)
+	{
+		int tid;
+		double start;
+		double private_load, private_time;
+
+		private_load = 0.0;
+		private_time = 0.0;
+
+		tid = omp_get_thread_num();
+		
+		#pragma omp for schedule(runtime)
+		for (unsigned i = 0; i < ntasks; i++)
+		{
+			int work;
+
+			private_load += work = tasks[i];
+			
+			start = omp_get_wtime();
+			kernel_cache(array, i, work, load);
+			private_time += omp_get_wtime() - start;
+		}
+
+		loads[tid] = private_load;
+		times[tid] = private_time;
+	}
+	
+	benchmark_dump(loads, nthreads, "cache_load");
+	benchmark_dump(times, nthreads, "cache_time");
+
+	/* House keeping. */
+	free(array);
+}
+
+/**
  * @brief Synthetic benchmark.
  * 
  * @param tasks    Tasks.
@@ -118,55 +247,14 @@ static void benchmark_dump(const double *respvar, int nthreads, const char *pref
  * @param nthreads Number of threads.
  * @param load     Load for constant kernel.
  */
-void benchmark(
-	const unsigned *tasks,
-	unsigned ntasks,
-	int nthreads,
-	long load)
+void benchmark(const unsigned *tasks, unsigned ntasks, int nthreads, long load)
 {
-	long sum = 0;
-	double loads[nthreads];
-	double times[nthreads];
-
-	memset(times, 0, nthreads*sizeof(double));
-	
 	/* Sanity check. */
 	assert(tasks != NULL);
 	assert(nthreads > 0);
 	assert(load > 0);
 
-	memset(loads, 0, nthreads*sizeof(unsigned));
-	
-	/* Predict workload. */
-	unsigned *_tasks;
-	_tasks = smalloc(ntasks*sizeof(unsigned));
-	memcpy(_tasks, tasks, ntasks*sizeof(unsigned));
-	
-	profile_start();
+	benchmark_cpu(tasks, ntasks, nthreads, load);
 
-	/* Sort Each bucket. */
-	omp_set_workload(_tasks, ntasks);
-
-	#pragma omp parallel for schedule(runtime) num_threads(nthreads) reduction(+:sum)
-	for (unsigned i = 0; i < ntasks; i++)
-	{
-		double start = 0.0;
-
-		int tid = omp_get_thread_num();
-
-		loads[tid] += tasks[i];
-		
-		start = omp_get_wtime();
-		sum += kernel(tasks[i], load);
-		times[tid] += omp_get_wtime() - start;
-	}
-	
-	profile_end();
-	profile_dump();
-	
-	benchmark_dump(loads, nthreads, "load");
-	benchmark_dump(times, nthreads, "time");
-
-	/* House  keeping. */
-	free(_tasks);
+	benchmark_cache(tasks, ntasks, nthreads, load);
 }

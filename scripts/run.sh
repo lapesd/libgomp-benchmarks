@@ -17,31 +17,35 @@
 # MA 02110-1301, USA.
 #
 
-# Directories.
-export BINDIR = $(CURDIR)/bin
-export INCDIR = $(CURDIR)/include
-export SRCDIR = $(CURDIR)/src
+INPUT=$1
+NTHREADS=$2
+LOAD=$3
 
-# Toolchain.
-export CC = gcc
+if [ -z $INPUT ]; then
+	echo "missing input workload"
+	exit -1
+fi
 
-# Toolchain configuration.
-export CFLAGS += -I $(INCDIR)
-export CFLAGS += -ansi -std=c99 -pedantic -fopenmp
-export CFLAGS += -Wall -Wextra -Werror
-export CFLAGS += -O3
+if [ -z $NTHREADS ]; then
+	echo "missing number of threads"
+	exit -1
+fi
 
-# Libraries.
-export LIBS = -L contrib/lapesd-libgomp/src/libgomp/build/.libs -lgomp -lm
+if [ -z $LOAD ]; then
+	let LOAD=10000000
+fi
 
-# Executable file.
-export EXEC = benchmark
+for strategy in static dynamic guided binlpt;
+do
+	echo "=== $strategy ==="
 
-# Builds everything.
-all:
-	mkdir -p $(BINDIR)
-	$(CC) $(SRCDIR)/*.c $(CFLAGS)  -o $(BINDIR)/$(EXEC).out $(LIBS)
+	export LD_LIBRARY_PATH=contrib/lapesd-libgomp/src/libgomp/build/.libs/
+	export OMP_SCHEDULE="$strategy"
+	export GOMP_CPU_AFFINITY="0-$NTHREADS"
 
-# Cleans compilation files.
-clean:
-	rm -f $(BINDIR)/$(EXEC).out
+	bin/benchmark.out        \
+		--input $INPUT       \
+		--nthreads $NTHREADS \
+		--kernel logarithmic \
+		--load $LOAD
+done

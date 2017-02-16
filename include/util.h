@@ -23,9 +23,7 @@
 	#include <stdlib.h>
 	
 	/* Forward definitions. */
-	extern void *scalloc(size_t, size_t);
 	extern void *smalloc(size_t);
-	extern void *srealloc(void *, size_t);
 	extern void error(const char *);
 
 #endif /* UTIL_H_ */
