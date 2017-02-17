@@ -32,7 +32,7 @@ export CFLAGS += -Wall -Wextra -Werror
 export CFLAGS += -O3
 
 # Libraries.
-export LIBS = -L contrib/lapesd-libgomp/src/libgomp/build/.libs -lgomp -lm
+export LIBS = -L $(CURDIR)/contrib/lapesd-libgomp/src/libgomp/build/.libs -lgomp -lm
 
 # Executable file.
 export EXEC = benchmark
