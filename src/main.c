@@ -58,6 +58,7 @@ static void usage(void)
 	printf("           linear          Linear kernel\n");
 	printf("           logarithmic     Logarithm kernel\n");
 	printf("           quadratic       Quadratic kernel\n");
+	printf("           cubic           Cubic kernel\n");
 	printf("  --input <filename>    Input workload file\n");
 	printf("  --load <num>          kernel load\n");
 	printf("  --nthreads <num>      Number of threads\n");
@@ -115,6 +116,23 @@ static void kernel_quadratic(unsigned *w, unsigned wsize)
 	}
 }
 
+/**
+ * @brief Applies a cubic kernel in a workload
+ *
+ * @param w     Target workload.
+ * @param wsize Size of target workload.
+ */
+static void kernel_cubic(unsigned *w, unsigned wsize)
+{
+	for (unsigned i = 0; i < wsize; i++)
+	{
+		unsigned load;
+
+		load = w[i];
+		w[i] = load*load*load;
+	}
+}
+
 /*============================================================================*
  *                             Argument Checking                              *
  *============================================================================*/
@@ -156,6 +174,8 @@ static void (*get_kernel(const char *kernelname))(unsigned *, unsigned)
 		return (kernel_logarithmic);
 	if (!strcmp(kernelname, "quadratic"))
 		return (kernel_quadratic);
+	if (!strcmp(kernelname, "cubic"))
+		return (kernel_cubic);
 
 	error("unsupported application kernel");
 
