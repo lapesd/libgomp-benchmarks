@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define PAGE_SIZE 4096
+
 /**
  * @brief Safe malloc().
  * 
@@ -32,8 +34,7 @@ void *smalloc(size_t n)
 {
 	void *p;
 	
-	p = malloc(n);
-	assert(p != NULL);
+	assert(posix_memalign(&p, PAGE_SIZE, n) == 0);
 	
 	return (p);
 }

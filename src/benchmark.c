@@ -65,7 +65,7 @@ static long kernel_cpu(unsigned n, long load)
  * @param n    Number of operations.
  * @param load Load of an operation.
  */
-static void kernel_cache(long *a, unsigned off, unsigned n, long load)
+static void kernel_cache(unsigned *a, unsigned off, unsigned n, long load)
 {
 	for (unsigned i = 0; i < n; i++)
 	{
@@ -185,6 +185,8 @@ static void benchmark_cpu(const unsigned *tasks, unsigned ntasks, int nthreads, 
 	free(_tasks);
 }
 
+#define CACHE_SIZE (256*1024)
+
 /**
  * @brief Cache intensive synthetic benchmark.
  * 
@@ -195,17 +197,19 @@ static void benchmark_cpu(const unsigned *tasks, unsigned ntasks, int nthreads, 
  */
 static void benchmark_cache(const unsigned *tasks, unsigned ntasks, int nthreads, long load)
 {
-	long *array;
-	unsigned *_tasks;
+	unsigned *_tasks, *array;
 	double loads[nthreads];
 	double times[nthreads];
 
-	array = smalloc(ntasks*sizeof(long));
 	_tasks = smalloc(ntasks*sizeof(unsigned));
+	array = smalloc(ntasks*sizeof(unsigned));
 
 	memset(times, 0, nthreads*sizeof(double));
 	memset(loads, 0, nthreads*sizeof(unsigned));
-	memset(array, 0, ntasks*sizeof(long));
+
+	#pragma omp parallel for schedule(static)
+	for (unsigned i = 0; i < ntasks; i++)
+		array[i] = tasks[i];
 	
 	/* Workload prediction. */
 	memcpy(_tasks, tasks, ntasks*sizeof(unsigned));
@@ -227,7 +231,7 @@ static void benchmark_cache(const unsigned *tasks, unsigned ntasks, int nthreads
 		{
 			int work;
 
-			private_load += work = tasks[i];
+			private_load += work = array[i];
 			
 			start = omp_get_wtime();
 			kernel_cache(array, i, work, load);
@@ -242,8 +246,8 @@ static void benchmark_cache(const unsigned *tasks, unsigned ntasks, int nthreads
 	benchmark_dump(times, nthreads, "cache_time");
 
 	/* House keeping. */
-	free(_tasks);
 	free(array);
+	free(_tasks);
 }
 
 /**
