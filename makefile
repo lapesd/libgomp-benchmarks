@@ -29,7 +29,7 @@ export CC = gcc
 export CFLAGS += -I $(INCDIR)
 export CFLAGS += -ansi -std=c99 -pedantic -fopenmp
 export CFLAGS += -Wall -Wextra -Werror
-export CFLAGS += -O3
+export CFLAGS += -O3 -D_POSIX_C_SOURCE=200112L
 
 # Libraries.
 export LIBS = -L $(CURDIR)/contrib/lapesd-libgomp/src/libgomp/build/.libs -lgomp -lm
