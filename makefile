@@ -40,8 +40,8 @@ export EXEC = benchmark
 # Builds everything.
 all:
 	mkdir -p $(BINDIR)
-	$(CC) $(SRCDIR)/*.c $(CFLAGS)  -o $(BINDIR)/$(EXEC).out $(LIBS)
+	$(CC) $(SRCDIR)/benchmark/*.c $(CFLAGS)  -o $(BINDIR)/$(EXEC).elf $(LIBS)
 
 # Cleans compilation files.
 clean:
-	rm -f $(BINDIR)/$(EXEC).out
+	rm -f $(BINDIR)/$(EXEC).elf
