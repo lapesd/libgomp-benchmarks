@@ -57,6 +57,8 @@ static long kernel_cpu(unsigned n, long load)
 	return (sum);
 }
 
+#if defined(_CACHE_BENCHMARK_)
+
 /**
  * @brief Cache intensive kernel.
  *
@@ -74,12 +76,14 @@ static void kernel_cache(unsigned *a, unsigned off, unsigned n, long load)
 	}
 }
 
+#endif
+
 /*============================================================================*
  *                                 Benchmark                                  *
  *============================================================================*/
 
 /**
- * @brief Dumps simulation statistics.
+ * @brief Dumps benchmark statistics.
  *
  * @param respvar  Response variable.
  * @param nthreads Number of threads.
@@ -117,12 +121,10 @@ static void benchmark_dump(const double *respvar, int nthreads, const char *pref
 	stddev = sqrt(stddev/(nthreads));
 
 	/* Print statistics. */
-	printf("%s_min: %lf\n", prefix, min);
 	printf("%s_max: %lf\n", prefix, max);
-	printf("%s_mean: %lf\n", prefix, mean);
-	printf("%s_stddev: %lf\n", prefix, 100*stddev/mean);
-	printf("%s_imbalance: %lf\n", prefix, 100*(max - min)/((double) total));
-	printf("%s_speeddown: %lf\n", prefix, max/((double) min));
+	printf("%s_total: %lf\n", prefix, total);
+	printf("%s_cov: %lf\n", prefix, stddev/mean);
+	printf("%s_slowdown: %lf\n", prefix, max/((double) min));
 	printf("%s_cost: %lf\n", prefix, nthreads*max);
 }
 
@@ -184,6 +186,8 @@ static void benchmark_cpu(const unsigned *tasks, unsigned ntasks, int nthreads, 
 	/* House keeping. */
 	free(_tasks);
 }
+
+#if defined(_CACHE_BENCHMARK_)
 
 #define CACHE_SIZE (256*1024)
 
@@ -250,6 +254,8 @@ static void benchmark_cache(const unsigned *tasks, unsigned ntasks, int nthreads
 	free(_tasks);
 }
 
+#endif
+
 /**
  * @brief Synthetic benchmark.
  * 
@@ -268,5 +274,7 @@ void benchmark(const unsigned *tasks, unsigned ntasks, int nthreads, long load)
 
 	benchmark_cpu(tasks, ntasks, nthreads, load);
 
+#if defined(_CACHE_BENCHMARK_)
 	benchmark_cache(tasks, ntasks, nthreads, load);
+#endif
 }
