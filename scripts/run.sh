@@ -43,7 +43,7 @@ do
 	export OMP_SCHEDULE="$strategy"
 	export GOMP_CPU_AFFINITY="0-$NTHREADS"
 
-	bin/benchmark.out        \
+	bin/benchmark.elf        \
 		--input $INPUT       \
 		--nthreads $NTHREADS \
 		--kernel logarithmic \
