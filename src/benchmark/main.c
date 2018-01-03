@@ -259,7 +259,7 @@ static unsigned *readfile(const char *input)
 /**
  * @brief Loop scheduler simulator.
  */
-int main(int argc, const const char **argv)
+int main(int argc, const char **argv)
 {
 	unsigned *tasks;
 	
