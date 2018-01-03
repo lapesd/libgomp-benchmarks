@@ -35,7 +35,7 @@ if [ -z $LOAD ]; then
 	let LOAD=10000000
 fi
 
-for strategy in static guided dynamic;
+for strategy in static guided dynamic binlpt;
 do
 	echo "=== $strategy ==="
 
