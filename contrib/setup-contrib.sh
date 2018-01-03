@@ -17,6 +17,6 @@
 # MA 02110-1301, USA.
 #
 
-tar -xjvf lapesd-libgomp-1.5.tar.bz2
+tar -xjvf lapesd-libgomp-1.6.tar.bz2
 cd lapesd-libgomp
 make 
